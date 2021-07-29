@@ -171,7 +171,7 @@ class Job(models.Model):
         if not self.worker:
             return False
 
-        with self.instance.worker.connect() as ssh:
+        with self.worker.connect() as ssh:
             with ssh.open_sftp() as sftp:
                 with sftp.file(self.tempfile, 'w') as script:
                     script.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
@@ -179,50 +179,54 @@ class Job(models.Model):
                     script.flush()
             with ssh.get_transport() as transport:
                 with transport.open_session() as session:
-                    session.exec_command(" ".join(
+                    session.exec_command(" ".join((
                         "systemd-run",
                         "--user",
                         "-r",
                         "-p", "Type=exec",
                         "-u", self.unit,
                         self.tempfile
-                    ))
+                    )))
                     status = session.recv_exit_status()
                     if status != 0:
                         raise Exception(f"Failed to create service unit for {self.id}: {status}")
         self.running = True
         self.started = timezone.now()
         self.save()
+        return self.running
 
     def stop(self):
-        with self.instance.worker.connect() as ssh:
-            with ssh.open_sftp() as sftp:
-                sftp.unlink(self.tempfile)
-            with ssh.get_transport() as transport:
-                with transport.open_session() as session:
-                    session.exec_command(" ".join(
-                        "systemctl",
-                        "--user",
-                        "stop",
-                        self.unit,
-                    ))
-                    status = session.recv_exit_status()
-                    if status != 0:
-                        raise Exception(f"Failed to stop service unit for {self.id}: {status}")
+        if self.worker:
+            with self.worker.connect() as ssh:
+                with ssh.open_sftp() as sftp:
+                    sftp.unlink(self.tempfile)
+                with ssh.get_transport() as transport:
+                    with transport.open_session() as session:
+                        session.exec_command(" ".join((
+                            "systemctl",
+                            "--user",
+                            "stop",
+                            self.unit,
+                        )))
+                        status = session.recv_exit_status()
+                        if status != 0:
+                            raise Exception(f"Failed to stop service unit for {self.id}: {status}")
         self.running = False
         self.finished = timezone.now()
         self.save()
 
     def is_alive(self):
-        with self.instance.worker.connect() as ssh:
+        if not self.worker:
+            return False
+        with self.worker.connect() as ssh:
             with ssh.get_transport() as transport:
                 with transport.open_session() as session:
-                    session.exec_command(" ".join(
+                    session.exec_command(" ".join((
                         "systemctl",
                         "--user",
                         "status",
                         self.unit,
-                    ))
+                    )))
                     if session.recv_exit_status() == 0:
                         return True
                     self.running = False
