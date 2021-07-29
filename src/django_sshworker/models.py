@@ -61,10 +61,10 @@ class Worker(models.Model):
         raise Exception("Host key could not be loaded")
 
     def fit(self, resource, slots):
-        instances = filter(
-            lambda i: i.free > slots,
+        instances = list(filter(
+            lambda i: i.free >= slots,
             self.instance_set.filter(resource=resource)
-        )
+        ))
         if not instances:
             return
         return random.choice(instances)
@@ -109,10 +109,10 @@ class Instance(models.Model):
 
     @property
     def free(self):
-        required = self.job_set.aggregate(
-            required=models.Sum('jobconstraint__required')
-        ).get('required')
-        return self.slots - required
+        occupied = self.jobconstraint_set.filter(job__running=True).aggregate(
+            required=models.Sum('required')
+        ).get('required') or 0
+        return self.slots - occupied
 
 
 class Job(models.Model):
