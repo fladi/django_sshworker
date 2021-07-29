@@ -48,6 +48,7 @@ setup(
     packages=find_packages(
         where='src',
         include=[
+            'django_sshworker',
             'django_sshworker.*',
         ]
     ),
