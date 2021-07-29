@@ -132,7 +132,7 @@ class Job(models.Model):
 
     @property
     def unit(self):
-        return f"job.{self.id}"
+        return f"sshworker-job-{self.id}"
 
     @property
     def tempfile(self):
