@@ -1,12 +1,16 @@
 import random
+import stat
 import uuid
 import paramiko
+from collections import ChainMap
 from django.db import models
 from django.contrib.postgres.fields import ArrayField, HStoreField
+from django.template import Context, Template
 from django.utils import timezone
 from io import StringIO
+from base64 import decodebytes
 from paramiko.client import SSHClient, RejectPolicy
-from paramiko.pkey import PublicBlob
+from paramiko.hostkeys import HostKeyEntry
 
 from .conf import settings
 
@@ -19,23 +23,42 @@ class Worker(models.Model):
     private_key = models.TextField()
     active = models.BooleanField(default=False)
 
+    KEY_TYPES = {
+        paramiko.dsskey.DSSKey: (
+            "ssh-dss",
+        ),
+        paramiko.ed25519key.Ed25519Key: (
+            "ssh-ed25519",
+        ),
+        paramiko.rsakey.RSAKey: (
+            "ssh-rsa",
+        ),
+        paramiko.ecdsakey.ECDSAKey: (
+            "ecdsa-sha2-nistp256",
+            "ecdsa-sha2-nistp384",
+            "ecdsa-sha2-nistp521",
+        )
+    }
+
     def __str__(self):
         return f"{self.username}@{self.hostname}"
 
     def get_private_key(self):
-        key_types = (
-            paramiko.dsskey.DSSKey,
-            paramiko.ed25519key.Ed25519Key,
-            paramiko.rsakey.RSAKey,
-            paramiko.ecdsakey.ECDSAKey
-        )
         # Stupid hack because paramiko does not offer autodetection of keys
-        for cls in key_types:
+        for klass in self.KEY_TYPES.keys():
             try:
-                return cls.from_private_key(StringIO(self.private_key))
+                return klass.from_private_key(StringIO(self.private_key))
             except:
                 pass
         raise Exception("Private key could not be loaded")
+
+    def get_host_key(self):
+        # Stupid hack because paramiko does not offer autodetection of keys
+        prefix, key = self.host_key.split()
+        for klass, match in self.KEY_TYPES.items():
+            if prefix in match:
+                return klass(data=decodebytes(key.encode("ascii")))
+        raise Exception("Host key could not be loaded")
 
     def fit(self, resource, slots):
         instances = filter(
@@ -47,9 +70,13 @@ class Worker(models.Model):
         return random.choice(instances)
 
     def connect(self):
-        host_key = PublicBlob.from_string(self.host_key)
+        host_key = self.get_host_key()
         client = SSHClient()
-        client.get_host_keys().add(self.hostname, host_key.key_type, host_key)
+        client.get_host_keys().add(
+            self.hostname,
+            host_key.get_name(),
+            host_key
+        )
         client.set_missing_host_key_policy(RejectPolicy)
         client.connect(
             hostname=self.hostname,
