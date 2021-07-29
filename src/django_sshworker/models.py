@@ -156,7 +156,7 @@ class Job(models.Model):
         for w in random.sample(list(workers), len(workers)):
             instances = dict(map(
                 lambda jc: (jc, w.fit(jc.resource, jc.required)),
-                self.jobconstriant_set.all()
+                self.jobconstraint_set.all()
             ))
             if all(instances.values()):
                 self.worker = w
