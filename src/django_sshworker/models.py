@@ -138,6 +138,16 @@ class Job(models.Model):
     def tempfile(self):
         return f"/tmp/{self.unit}"
 
+    def render(self, additions=None):
+        properties = dict(ChainMap(*[jc.instance.properties for jc in self.jobconstraint_set.all()]))
+        context = Context({
+            "job": self,
+            "properties": properties,
+        })
+        if additions:
+            context.update(additions)
+        return Template(self.script.replace("\r\n", "\n")).render(context)
+
     def assign(self):
         workers = Worker.objects.filter(
             active=True,
@@ -157,14 +167,16 @@ class Job(models.Model):
                 return True
         return False
 
-    def start(self):
+    def start(self, context=None):
         if not self.worker:
             return False
 
         with self.instance.worker.connect() as ssh:
             with ssh.open_sftp() as sftp:
                 with sftp.file(self.tempfile, 'w') as script:
-                    script.write(self.script)
+                    script.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+                    script.write(self.render(context))
+                    script.flush()
             with ssh.get_transport() as transport:
                 with transport.open_session() as session:
                     session.exec_command(" ".join(
