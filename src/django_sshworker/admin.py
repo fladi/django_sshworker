@@ -16,7 +16,17 @@ class ResourceAdmin(admin.ModelAdmin):
 
 @admin.register(models.Instance)
 class InstanceAdmin(admin.ModelAdmin):
-    pass
+    list_display = (
+        'name',
+        'resource',
+        'worker',
+        'slots',
+        'free',
+    )
+    list_filter = (
+        'resource',
+        'worker',
+    )
 
 
 class JobConstraintInline(admin.TabularInline):
