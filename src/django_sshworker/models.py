@@ -199,7 +199,10 @@ class Job(models.Model):
         if self.worker:
             with self.worker.connect() as ssh:
                 with ssh.open_sftp() as sftp:
-                    sftp.unlink(self.tempfile)
+                    try:
+                        sftp.unlink(self.tempfile)
+                    except FileNotFoundError:
+                        pass
                 with ssh.get_transport() as transport:
                     with transport.open_session() as session:
                         session.exec_command(" ".join((
