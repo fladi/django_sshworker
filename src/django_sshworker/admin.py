@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 
 from . import models
@@ -50,6 +51,7 @@ class JobAdmin(admin.ModelAdmin):
     )
     date_hierarchy = "started"
     view_on_site = False
+    actions = ['stop']
     inlines = [
         JobConstraintInline,
     ]
@@ -83,3 +85,12 @@ class JobAdmin(admin.ModelAdmin):
             }
         ),
     )
+
+    def stop(self, request, queryset):
+        for job in queryset:
+            try:
+                job.stop()
+                self.message_user(request, _("Successfully stopped job {job}").format(job=job.pk), level=messages.SUCCESS, fail_silently=True)
+            except Exception:
+                self.message_user(request, _("Failed to stop job {job}").format(job=job.pk), level=messages.ERROR, fail_silently=True)
+    stop.short_description = _("Stop selected jobs")
