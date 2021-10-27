@@ -35,6 +35,21 @@ class JobConstraintInline(admin.TabularInline):
 
 @admin.register(models.Job)
 class JobAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'worker',
+        'running',
+        'started',
+        'finished',
+    )
+    list_filter = (
+        'worker',
+        'running',
+        'started',
+        'finished',
+    )
+    date_hierarchy = "started"
+    view_on_site = False
     inlines = [
         JobConstraintInline,
     ]
