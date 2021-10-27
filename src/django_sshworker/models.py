@@ -127,6 +127,12 @@ class Job(models.Model):
     started = models.DateTimeField(blank=True, null=True)
     finished = models.DateTimeField(blank=True, null=True)
 
+    class Meta:
+        ordering = (
+            "started",
+            "finished",
+        )
+
     def __str__(self):
         return f"{self.id}: {self.worker}"
 
