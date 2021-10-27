@@ -8,14 +8,17 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('django_sshworker', '0001_initial'),
-    ]
+    dependencies = [("django_sshworker", "0001_initial")]
 
     operations = [
         migrations.AlterField(
-            model_name='job',
-            name='worker',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='django_sshworker.Worker'),
-        ),
+            model_name="job",
+            name="worker",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="django_sshworker.Worker",
+            ),
+        )
     ]

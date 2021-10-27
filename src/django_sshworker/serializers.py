@@ -7,13 +7,7 @@ from . import models
 class WorkerSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Worker
-        fields = [
-            "id",
-            "hostname",
-            "port",
-            "host_key",
-            "private_key",
-        ]
+        fields = ["id", "hostname", "port", "host_key", "private_key"]
 
 
 class JobSerializer(serializers.ModelSerializer):

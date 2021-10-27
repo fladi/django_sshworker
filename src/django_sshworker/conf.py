@@ -7,4 +7,3 @@ class SSHWorkerAppConf(AppConf):
 
     class Meta:
         prefix = "SSHWORKER"
-

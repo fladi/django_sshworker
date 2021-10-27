@@ -125,17 +125,12 @@ class WorkerSSHClientSession(asyncssh.SSHClientSession):
 
     async def session_started(self):
         logger.debug(f"session_started: {self}")
-        payload = {
-            "started": datetime.now(timezone.utc).isoformat(),
-        }
+        payload = {"started": datetime.now(timezone.utc).isoformat()}
         await self.api.update(self.pk, payload)
 
     async def connection_lost(self, exc):
         logger.debug(f"connection_lost: {self}")
-        payload = {
-            "finished": datetime.now(timezone.utc).isoformat(),
-            "running": False,
-        }
+        payload = {"finished": datetime.now(timezone.utc).isoformat(), "running": False}
         await self.api.update(self.pk, payload)
 
     async def exit_status_received(self, status):
@@ -151,10 +146,7 @@ class WorkerSSHClientSession(asyncssh.SSHClientSession):
             return
         if not any([p.match(data) for p in self.filters]):
             return
-        payload = {
-            "data": data,
-            "datatype": datatype,
-        }
+        payload = {"data": data, "datatype": datatype}
         # Fire&Forget: Send off task but don't wait for it. This is to prevent
         # a bottleneck when a lot of data is received.
         asyncio.create_task(self.api.process(self.processing, payload))
