@@ -22,6 +22,7 @@ class Worker(models.Model):
     host_key = models.TextField()
     private_key = models.TextField()
     active = models.BooleanField(default=False)
+    properties = HStoreField(blank=True, null=True)
 
     KEY_TYPES = {
         paramiko.dsskey.DSSKey: ("ssh-dss",),
@@ -137,6 +138,8 @@ class Job(models.Model):
             ChainMap(*[jc.instance.properties for jc in self.jobconstraint_set.all()])
         )
         context = Context({"job": self, "properties": properties})
+        if self.worker.properties:
+            context.update(self.worker.properties)
         if additions:
             context.update(additions)
         return Template(self.script.replace("\r\n", "\n")).render(context)
