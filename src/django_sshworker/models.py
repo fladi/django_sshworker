@@ -148,6 +148,7 @@ class Job(models.Model):
     def assign(self):
         workers = Worker.objects.filter(
             active=True,
+            online=True,
             instance__resource_id__in=self.jobconstraint_set.values_list(
                 "resource", flat=True
             ).distinct(),
