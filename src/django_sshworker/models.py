@@ -22,6 +22,7 @@ class Worker(models.Model):
     host_key = models.TextField()
     private_key = models.TextField()
     active = models.BooleanField(default=False)
+    online = models.BooleanField(default=False)
     properties = HStoreField(blank=True, null=True)
 
     KEY_TYPES = {
